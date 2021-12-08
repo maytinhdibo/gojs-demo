@@ -1,4 +1,32 @@
+function loadDemo1(){
+  data = data1;
+  init();
+}
 
+function loadDemo2(){
+  data = data2;
+  init();
+}
+
+document.getElementById('inputfile')
+            .addEventListener('change', function() {
+              
+            var fr=new FileReader();
+            fr.onload=function(){
+                console.log(fr.result);
+                data = JSON.parse(fr.result);
+                init();
+            }
+              
+            fr.readAsText(this.files[0]);
+        })
+
+var diagram;
+function init(){
+if(diagram) {
+  diagram.div = null;
+  diagram.div = null;
+}
 var $ = go.GraphObject.make;  // for conciseness in defining templates
 
 diagram = $(go.Diagram, "myDiagramDiv",  // Diagram refers to its DIV HTML element by id
@@ -27,7 +55,12 @@ diagram.nodeTemplate =
         // for each Node destination for the Node, set Node.isHighlighted
         node.findNodesOutOf().each(function (n) { n.isHighlighted = true; });
         diagram.commitTransaction("highlight");
-      }
+      },
+      toolTip:  // define a tooltip for each node that displays the color as text
+        $("ToolTip",
+          $(go.TextBlock, { margin: 4 },
+            new go.Binding("text", "uniqueName"))
+        )  // end ov
     },
     $(go.Shape, "RoundedRectangle",
       { fill: "white" },
@@ -56,20 +89,40 @@ diagram.nodeTemplate =
 
 diagram.linkTemplate =
   $(go.Link,
-    { toShortLength: 4 },
+    { toShortLength: 4, curve: go.Link.Bezier },
     $(go.Shape,
       // the Shape.stroke color depends on whether Link.isHighlighted is true
-      new go.Binding("stroke", "isHighlighted", function (h) { return h ? "green" : "black"; })
+      new go.Binding("stroke", "isHighlighted", function (h) {return h ? "green" : "black"; })
         .ofObject(),
       // the Shape.strokeWidth depends on whether Link.isHighlighted is true
       new go.Binding("strokeWidth", "isHighlighted", function (h) { return h ? 3 : 1; })
         .ofObject()),
     $(go.Shape,
-      { toArrow: "Standard", strokeWidth: 0 },
-      // the Shape.fill color depends on whether Link.isHighlighted is true
+      {
+        toArrow: "Standard",
+        strokeWidth: 0
+      },
+      // // the Shape.fill color depends on whether Link.isHighlighted is true
       new go.Binding("fill", "isHighlighted", function (h) { return h ? "green" : "black"; })
-        .ofObject())
+        .ofObject()
+      ),
   );
+
+  diagram.linkTemplateMap.add('outboundLink',
+      $(go.Link,
+        {
+          adjusting: go.Link.End,
+          curve: go.Link.Bezier
+        },
+        $(go.Shape,// the link path shape
+          { isPanelMain: true, strokeWidth: 1, stroke:"blue" }), {
+          selectionAdornmentTemplate:
+            $(go.Adornment,
+              $(go.Shape,
+                { isPanelMain: true, stroke: 'dodgerblue', strokeWidth: 1 })
+            ) 
+        }
+      ));
 
 var nodeDataArray = [
   // { key: "Alpha" },
@@ -99,6 +152,7 @@ data.groups.forEach(group => {
       text: node.class,
       name: !node.name ? '' : node.name,
       group: "group_" + group.id,
+      uniqueName: node.uniqueName ? node.uniqueName : !node.name ? node.class : node.name,
       fill: "green"
     });
 
@@ -111,7 +165,23 @@ data.groups.forEach(group => {
       });
     }
 
+    if (node.outboundConnections) {
+      node.outboundConnections.forEach(outboundConnection => {
+        if (Array.isArray(outboundConnection)) {
+          linkDataArray.push({
+            from: nodeId,
+            to: "group_" + outboundConnection[0][0] + "node_" + outboundConnection[0][1],
+            category: "outboundLink"
+          });
+        }
+      });
+    }
+
   });
 
 });
 diagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
+
+}
+
+init();
