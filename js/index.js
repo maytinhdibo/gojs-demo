@@ -115,7 +115,7 @@ diagram.linkTemplate =
           curve: go.Link.Bezier
         },
         $(go.Shape,// the link path shape
-          { isPanelMain: true, strokeWidth: 1, stroke:"blue" }), {
+          { isPanelMain: true, strokeWidth: 1, stroke:"#00897b" }), {
           selectionAdornmentTemplate:
             $(go.Adornment,
               $(go.Shape,
